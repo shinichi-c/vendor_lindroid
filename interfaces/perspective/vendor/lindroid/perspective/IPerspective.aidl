@@ -22,10 +22,11 @@ package vendor.lindroid.perspective;
  * @hide
  */
 interface IPerspective {
-    boolean start(String id);
+    boolean start(String id, boolean capture_output);
     boolean stop(String id);
     boolean isRunning(String id);
     List<String> listContainers();
     boolean addContainer(String id, in ParcelFileDescriptor tarball);
     boolean deleteContainer(String id);
+    String fetchLogs(String id); // New method to fetch logs
 }
