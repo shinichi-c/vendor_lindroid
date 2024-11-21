@@ -11,7 +11,7 @@ import static org.lindroid.ui.NativeLib.nativeSurfaceChanged;
 import static org.lindroid.ui.NativeLib.nativeSurfaceCreated;
 import static org.lindroid.ui.NativeLib.nativeSurfaceDestroyed;
 import static org.lindroid.ui.NativeLib.nativeTouchEvent;
-
+import static org.lindroid.ui.NativeLib.nativeGetUiRunning;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
@@ -28,12 +28,16 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.graphics.Canvas;
+import android.view.Choreographer;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.Callback,
@@ -47,6 +51,12 @@ public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.
     private int mPreviousWidth = 0;
     private int mPreviousHeight = 0;
     private Runnable mSurfaceRunnable;
+    SurfaceView mSurfaceView;
+
+    private final List<String> displayedLogs = new ArrayList<>();
+    private int scrollOffset = 0;
+    private static final int LINE_HEIGHT = 20;
+    private int visibleLines;
 
     @Override
     @SuppressLint("ClickableViewAccessibility") // use screen reader inside linux
@@ -57,7 +67,7 @@ public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.
         if (HardwareService.getInstance() == null) {
             startForegroundService(new Intent(this, HardwareService.class));
         }
-        SurfaceView mSurfaceView = new SurfaceView(this);
+        mSurfaceView = new SurfaceView(this);
         setContentView(mSurfaceView);
         final WindowInsetsController controller = getWindow().getInsetsController();
         if (controller != null) {
@@ -78,6 +88,63 @@ public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.
 
         // Hide pointer icon
         mSurfaceView.setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_NULL));
+
+        // Register for log updates
+        ContainerManager.addLogUpdateListener(mContainerName, this::onLogUpdated);
+        ContainerManager.startFetchingLogs(mContainerName);
+    }
+
+    private void drawLogs() {
+        if(nativeGetUiRunning())
+            return;
+        Canvas canvas = mSurfaceView.getHolder().lockCanvas();
+        if (canvas != null) {
+            try {
+                // clear the canvas
+                canvas.drawColor(android.graphics.Color.BLACK);
+
+                android.graphics.Paint paint = new android.graphics.Paint();
+                paint.setColor(android.graphics.Color.WHITE);
+                paint.setTextSize(24);
+                paint.setAntiAlias(true);
+                paint.setTypeface(android.graphics.Typeface.MONOSPACE);
+
+                int surfaceHeight = canvas.getHeight();
+                int lineHeight = (int) paint.getTextSize() + LINE_HEIGHT;
+                visibleLines = surfaceHeight / lineHeight;
+
+                int startLine = Math.max(0, displayedLogs.size() - visibleLines - scrollOffset);
+
+                int y = lineHeight;
+                for (int i = startLine; i < displayedLogs.size(); i++) {
+                    canvas.drawText(displayedLogs.get(i), 10, y, paint);
+                    y += lineHeight;
+                }
+            } finally {
+                mSurfaceView.getHolder().unlockCanvasAndPost(canvas);
+            }
+        }
+    }
+
+    private void onLogUpdated(String containerName, String latestLog) {
+        Log.d(TAG, "New log for container " + containerName + ": " + latestLog);
+
+        runOnUiThread(() -> {
+            synchronized (displayedLogs) {
+                String[] newLines = latestLog.split("\n");
+                for (String line : newLines) {
+                    displayedLogs.add(line);
+                }
+
+                if (displayedLogs.size() > visibleLines) {
+                    scrollOffset = 0;
+                } else {
+                    scrollOffset = Math.max(0, visibleLines - displayedLogs.size());
+                }
+            }
+            // draw the logs
+            drawLogs();
+        });
     }
 
     @Override
@@ -112,6 +179,9 @@ public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.
             nativeDisplayDestroyed(mDisplayID);
             nativeStopInputDevice(mDisplayID);
         }
+        // Stop log fetching and unregister listener
+        ContainerManager.stopFetchingLogs(mContainerName);
+        ContainerManager.removeLogUpdateListener(mContainerName, this::onLogUpdated);
     }
 
     @Override
