@@ -25,7 +25,7 @@ Patch your device kernel to enable these defconfigs:
     CONFIG_CGROUP_DEVICE=y
     CONFIG_CGROUP_FREEZER=y
 
-Clone vendor_lindroid, vendor_extra, libhybris and external_lxc repositories into an LMODroid (or LineageOS, if you pick [this patch](https://gerrit.libremobileos.com/c/LMODroid/platform_frameworks_native/+/12936)) tree, set your SELinux to permissive (not recommended for production use!) and build it! You then will have a Lindroid app you can use in your app drawer.
+Clone vendor_lindroid, vendor_extra, libhybris and external_lxc repositories into an LMODroid (or LineageOS, if you pick [this patch](https://gerrit.libremobileos.com/c/LMODroid/platform_frameworks_native/+/12936)) tree and build it! You then will have a Lindroid app you can use in your app drawer.
 
 ## Community
 
