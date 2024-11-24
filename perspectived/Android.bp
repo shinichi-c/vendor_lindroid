@@ -30,7 +30,7 @@ cc_binary {
     ],
 
     include_dirs: [
-        "external/lxc/src"
+        "external/lxc/src",
     ],
 
     cflags: ["-DLOG_TAG=\"perspectived\""],

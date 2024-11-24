@@ -74,4 +74,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0-beta01")
     //noinspection GradleDependency - 14 QPR 3
     implementation("com.google.android.material:material:1.7.0-alpha03")
+    //noinspection GradleDependency - 14 QPR 3
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }

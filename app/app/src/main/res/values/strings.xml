@@ -36,4 +36,9 @@
     <string name="stop_container">Stop container</string>
     <string name="set_name">Container name</string>
     <string name="deleting_container_title">Deleting container…</string>
+    <string name="use_local_file">Use local file...</string>
+    <string name="large_download">Large download</string>
+    <string name="large_download_msg">To create the container, a large file has to be downloaded. Please make sure you are connected to unmetered internet before proceeding.</string>
+    <string name="delete_failed">Delete failed</string>
+    <string name="delete_failed_msg">Deleting this container failed. Please check logcat for more information.</string>
 </resources>

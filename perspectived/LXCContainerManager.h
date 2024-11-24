@@ -26,6 +26,8 @@ namespace perspective {
 
 class LXCContainerManager : public BnPerspective {
 public:
+    LXCContainerManager();
+
     // BnPerspective interface
     // ------------------------------------------------------------------------
 

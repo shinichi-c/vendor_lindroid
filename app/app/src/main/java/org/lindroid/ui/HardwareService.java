@@ -42,13 +42,14 @@ public class HardwareService extends Service {
             @Override
             public void run() {
                 // Activity is supposed to clean us up, but if it doesn't happen, let's not
-                // waste user's battery life.
+                // waste user's battery life. This happens if container stops itself while
+                // activity is not in foreground.
                 if (ContainerManager.isAtLeastOneRunning() == null)
                     stopSelf();
                 else
-                    handler.postDelayed(this, 5 * 60 * 1000);
+                    handler.postDelayed(this, 30 * 1000);
             }
-        }, 5 * 60 * 1000);
+        }, 30 * 1000);
     }
 
     @Override

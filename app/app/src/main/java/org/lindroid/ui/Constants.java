@@ -1,6 +1,8 @@
 package org.lindroid.ui;
 
 import android.annotation.SuppressLint;
+import android.net.Uri;
+import android.os.Build;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,5 +24,18 @@ public class Constants {
                  InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Uri getDownloadUriForCurrentArch() {
+	    return switch (Build.SUPPORTED_ABIS[0]) {
+		    case "arm64-v8a" ->
+				    Uri.parse("https://github.com/Linux-on-droid/lindroid-rootfs/releases/download/nightly/lindroid-rootfs-arm64-plasma.zip.tar.gz");
+		    case "x86_64" ->
+				    Uri.parse("https://github.com/Linux-on-droid/lindroid-rootfs/releases/download/nightly/lindroid-rootfs-amd64-plasma.zip.tar.gz");
+		    case "armeabi-v7a" ->
+				    Uri.parse("https://github.com/Linux-on-droid/lindroid-rootfs/releases/download/nightly/lindroid-rootfs-armhf-plasma.zip.tar.gz");
+		    default ->
+				    throw new UnsupportedOperationException("Lindroid does not seem to support this architecture: " + Build.SUPPORTED_ABIS[0]);
+	    };
     }
 }

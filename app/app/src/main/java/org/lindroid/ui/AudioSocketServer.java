@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class AudioSocketServer {
-    private static final byte[] AUDIO_OUTPUT_PREFIX = new byte[] { 0x01 };
+    private static final byte AUDIO_OUTPUT_PREFIX = 0x01;
     private static final byte AUDIO_INPUT_PREFIX = 0x02;
 
     private static final String TAG = "AudioSocketServer";
@@ -163,11 +163,11 @@ public class AudioSocketServer {
 
             while (isRunning) {
                 bytesRead = inputStream.read(buffer);
-                Log.i(TAG, "Bytes read from client: " + bytesRead);
-
                 if (bytesRead > 0) {
                     byte prefix = buffer[0];
-                    Log.i(TAG, "Received prefix: " + prefix);
+
+                    if (prefix != AUDIO_OUTPUT_PREFIX)
+                        throw new IOException("got prefix " + prefix + " but wanted " + AUDIO_OUTPUT_PREFIX);
 
                     // Write data to AudioTrack (if appropriate)
                     audioTrack.write(buffer, 1, bytesRead - 1);

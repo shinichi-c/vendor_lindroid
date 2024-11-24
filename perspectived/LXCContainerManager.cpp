@@ -21,11 +21,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <utils/Log.h>
+#include <log/log.h>
 
 #include "LXCContainerManager.h"
 
+#if !defined(LOG_NDEBUG) || (LOG_NDEBUG == 0)
 #define DEBUG 1
+#else
+#define DEBUG 0
+#endif
 
 namespace aidl {
 namespace vendor {
@@ -127,7 +131,7 @@ static bool containerAdd(const char* id, int tarball) {
         ALOGE("invalid id");
         return false;
     }
-    struct lxc_container *c = lxc_container_new(id, lxc_get_global_config_item("lxc.lxcpath"));
+    struct lxc_container *c = lxc_container_new(id, NULL);
     if (!c) {
         ALOGE("failed to create container, lxc said new failed");
         return false;
@@ -204,6 +208,24 @@ static std::vector<std::string> containerList() {
     }
     free(names);
     return ret;
+}
+
+LXCContainerManager::LXCContainerManager() {
+    struct lxc_log log;
+    log.prefix = "perspectived_lxc"; // max 31 chars excl null terminator
+    log.file = "none"; // special value to not log to file
+    log.level = "DEBUG"; // see lxc_log_priority_to_int
+    lxc_log_init(&log);
+    struct lxc_container *c = lxc_container_new("", NULL);
+    if (!c) {
+        ALOGE("failed to enable syslog with dummy container, creation failure");
+    } else {
+        // There's no proper API except this config flag to enable logging to syslog (-> logcat on Android).
+        // Unlike what it seems like, this changes a process-wide setting!
+        if (!c->set_config_item(c, "lxc.log.syslog", "local0"))
+            ALOGE("failed to enable syslog with dummy container, set config failure");
+        lxc_container_put(c);
+    }
 }
 
 ndk::ScopedAStatus LXCContainerManager::start(const std::string &id, bool *_aidl_return) {

@@ -4,12 +4,16 @@ android_app {
     certificate: "platform",
     system_ext_specific: true,
 
-    srcs: ["java/**/*.java"],
+    srcs: [
+        "java/**/*.java",
+        "java/**/*.kt",
+    ],
 
     static_libs: [
         "androidx.appcompat_appcompat",
         "com.google.android.material_material",
         "vendor.lindroid.perspective-java",
+        "kotlinx_coroutines_android",
     ],
     jni_libs: [
         "libjni_lindroidui",

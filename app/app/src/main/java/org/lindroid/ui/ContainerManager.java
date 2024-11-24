@@ -9,6 +9,7 @@ import android.os.ServiceManager;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import vendor.lindroid.perspective.IPerspective;
@@ -19,20 +20,25 @@ public class ContainerManager {
 
     private ContainerManager() {} // no init
 
-    private static void getPerspectiveIfNeeded() {
-        if (mPerspective != null) return;
+    public static boolean isPerspectiveAvailable() {
+        if (mPerspective != null) {
+            //if (mPerspective.isBinderAlive()) TODO
+                return true;
+            //mPerspective = null;
+        }
         // Fetch the Perspective service
         final IBinder binder = ServiceManager.getService(Constants.PERSPECTIVE_SERVICE_NAME);
         if (binder == null) {
             Log.e(TAG, "Failed to get binder from ServiceManager");
-            throw new RuntimeException("Failed to obtain Perspective service");
-        } else {
-            mPerspective = IPerspective.Stub.asInterface(binder);
+            return false;
         }
+        mPerspective = IPerspective.Stub.asInterface(binder);
+        return true;
     }
 
     public static boolean isRunning(String containerName) {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return false;
         try {
             return mPerspective.isRunning(containerName);
         } catch (RemoteException e) {
@@ -50,7 +56,8 @@ public class ContainerManager {
     }
 
     public static boolean start(String containerName) {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return false;
         try {
             if (mPerspective.start(containerName)) {
                 Log.d(TAG, "Container " + containerName + " started successfully.");
@@ -66,7 +73,8 @@ public class ContainerManager {
     }
 
     public static boolean stop(String containerName) {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return false;
         try {
             if (mPerspective.stop(containerName)) {
                 Log.d(TAG, "Container " + containerName + " stopped successfully.");
@@ -82,7 +90,8 @@ public class ContainerManager {
     }
 
     public static boolean addContainer(String containerName, ContentResolver cr, Uri rootfs) {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return false;
         try (ParcelFileDescriptor pfd = cr.openFileDescriptor(rootfs, "r")) {
             if (mPerspective.addContainer(containerName, pfd)) {
                 Log.d(TAG, "Container " + containerName + " added successfully.");
@@ -101,7 +110,8 @@ public class ContainerManager {
     }
 
     public static boolean deleteContainer(String containerName) {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return false;
         try {
             if (mPerspective.deleteContainer(containerName)) {
                 Log.d(TAG, "Container " + containerName + " deleted successfully.");
@@ -117,7 +127,8 @@ public class ContainerManager {
     }
 
     public static List<String> listContainers() {
-        getPerspectiveIfNeeded();
+        if (!isPerspectiveAvailable())
+            return new ArrayList<>();
         try {
             return mPerspective.listContainers();
         } catch (RemoteException e) {

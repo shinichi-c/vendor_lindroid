@@ -112,6 +112,8 @@ public class DisplayActivity extends AppCompatActivity implements SurfaceHolder.
             nativeDisplayDestroyed(mDisplayID);
             nativeStopInputDevice(mDisplayID);
         }
+        if (ContainerManager.isAtLeastOneRunning() == null && HardwareService.getInstance() != null)
+            stopService(new Intent(this, HardwareService.class));
     }
 
     @Override
