@@ -1,3 +1,4 @@
+# Do not delete this line, place rules below
 /system_ext/bin/perspectived           u:object_r:perspectived_exec:s0
 /data/lindroid(/.*)?                   u:object_r:lindroid_file:s0
-
+# Do not delete this or the next line, place rules above
