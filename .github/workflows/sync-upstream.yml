@@ -4,6 +4,9 @@ on:
   - cron: "0 0 * * *"  # run daily
   workflow_dispatch:   # run manually
 
+permissions:
+  contents: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -23,6 +26,6 @@ jobs:
       run: echo "cur_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
     - name: Workflow Dispatch
       uses: benc-uk/workflow-dispatch@v1.2.4
-      if: ${{ steps.get-initial-hash.outputs.init_hash != steps.get-current-hash.outputs.cur_hash }}
+      if: ${{ steps.get-initial-hash.outputs.init_hash != steps.get-current-hash.outputs.cur_hash && hashFiles('.github/workflows/build.yml') != '' }}
       with:
         workflow: build.yml
