@@ -15,6 +15,7 @@ import static org.lindroid.ui.NativeLib.nativeTouchStylusButtonEvent;
 import static org.lindroid.ui.NativeLib.nativeTouchStylusHoverEvent;
 import static org.lindroid.ui.NativeLib.nativeTouchStylusEvent;
 
+import static org.lindroid.ui.NativeLib.nativeSetAppForeground;
 import static org.lindroid.ui.NativeLib.nativeGetUiRunning;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -58,11 +59,15 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
     private int mDisplayID = 0;
     private int mPreviousWidth = 0;
     private int mPreviousHeight = 0;
+    private int mPreviousDensityDpi = 0;
+    private float mPreviousRefresh = 0.0f;
     private Runnable mSurfaceRunnable;
     private OnBackPressedCallback backCallback;
     private ExecutorService teardownExecutor = Executors.newSingleThreadExecutor();
     private TextureView mTextureView;
     private Surface mCurrentSurface;
+    private Handler mDpmsHandler;
+    private Runnable mDpmsOffRunnable;
 
     private final List<String> displayedLogs = new ArrayList<>();
     private int scrollOffset = 0;
@@ -79,6 +84,7 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
             startForegroundService(new Intent(this, HardwareService.class));
         }
         mTextureView = new TextureView(this);
+        mTextureView.setOpaque(true);
         setContentView(mTextureView);
         final WindowInsetsController controller = getWindow().getInsetsController();
         if (controller != null) {
@@ -91,6 +97,8 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
 
         if (mHandler == null)
             mHandler = new Handler(Looper.getMainLooper());
+        mDpmsHandler = new Handler(Looper.getMainLooper());
+        mDpmsOffRunnable = () -> nativeSetAppForeground(mDisplayID, false);
         mTextureView.setOnTouchListener(this);
         mTextureView.setOnHoverListener(this);
         mTextureView.setOnGenericMotionListener(this);
@@ -193,6 +201,19 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
             // draw the logs
             drawLogs();
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mDpmsHandler.removeCallbacks(mDpmsOffRunnable);
+        nativeSetAppForeground(mDisplayID, true);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mDpmsHandler.postDelayed(mDpmsOffRunnable, 1000);
     }
 
     @Override
@@ -359,7 +380,7 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
 
     private void triggerSurfaceChanged(Surface surface, int w, int h) {
         if (mSurfaceRunnable != null)
-            mHandler.removeCallbacksAndMessages(mSurfaceRunnable);
+            mHandler.removeCallbacks(mSurfaceRunnable);
         mSurfaceRunnable = () -> applySurfaceChanges(surface, w, h);
         mHandler.postDelayed(mSurfaceRunnable, 200);
     }
@@ -372,11 +393,23 @@ public class DisplayActivity extends AppCompatActivity implements TextureView.Su
             } catch (Exception e) {
                 Log.e(TAG, "Failed to get display refresh rate", e);
             }
-            nativeSurfaceChanged(mDisplayID, surface, getResources().getConfiguration().densityDpi, refresh);
-            if (mPreviousWidth != w || mPreviousHeight != h) {
-                nativeReconfigureInputDevice(mDisplayID, w, h);
-                mPreviousWidth = w;
-                mPreviousHeight = h;
+            int densityDpi = getResources().getConfiguration().densityDpi;
+
+            boolean sizeChanged = (mPreviousWidth != w || mPreviousHeight != h);
+            boolean densityChanged = (mPreviousDensityDpi != densityDpi);
+            boolean refreshChanged = (Float.compare(mPreviousRefresh, refresh) != 0);
+
+            if (sizeChanged || densityChanged || refreshChanged) {
+                nativeSurfaceChanged(mDisplayID, surface, densityDpi, refresh);
+
+                if (sizeChanged) {
+                    nativeReconfigureInputDevice(mDisplayID, w, h);
+                    mPreviousWidth = w;
+                    mPreviousHeight = h;
+                }
+
+                mPreviousDensityDpi = densityDpi;
+                mPreviousRefresh = refresh;
             }
         }
     }
